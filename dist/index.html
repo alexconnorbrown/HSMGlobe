@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <title>CodePen - Global</title>
+  <link rel="stylesheet" href="./style.css">
+
+</head>
+<body>
+<!-- partial:index.partial.html -->
+<div class="page">    
+  <div class="globe-wrapper">
+    <canvas id="globe-3d"></canvas>
+    <canvas id="globe-2d-overlay"></canvas>
+    </div>
+  </div>
+</div>
+
+
+<script type="x-shader/x-fragment" id="fragment-shader-map">
+  uniform sampler2D u_map_tex;
+
+  varying float vOpacity;
+  varying vec2 vUv;
+
+  void main() {
+      vec3 color = texture2D(u_map_tex, vUv).rgb;
+      color -= 0.2 * length(gl_PointCoord.xy - vec2(0.5));
+      float dot = 1.0 - smoothstep(0.38, 0.4, length(gl_PointCoord.xy - vec2(0.5)));
+      if (dot < 0.5) discard;
+      gl_FragColor = vec4(0.5, 0.5, 0.5, vOpacity); // This will make the globe more grayish
+  }
+</script>
+
+<script type="x-shader/x-vertex" id="vertex-shader-map">
+  uniform sampler2D u_map_tex;
+  uniform float u_dot_size;
+  uniform float u_time_since_click;
+  uniform vec3 u_pointer;
+
+  #define PI 3.14159265359
+
+  varying float vOpacity;
+  varying vec2 vUv;
+
+  void main() {
+
+      vUv = uv;
+
+      // mask with world map
+      float visibility = step(0.2, texture2D(u_map_tex, uv).r);
+      gl_PointSize = visibility * u_dot_size;
+
+      // make back dots semi-transparent
+      vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+      vOpacity = (1.0 / length(mvPosition.xyz) - 0.7);
+      vOpacity = clamp(vOpacity, 0.03, 1.0);
+
+      // add ripple
+      vec3 pos = position;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+  }
+</script>
+<!-- partial -->
+  <script type="module" src="./script.js"></script>
+
+</body>
+</html>
